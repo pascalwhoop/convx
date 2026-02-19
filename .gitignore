@@ -1,4 +1,5 @@
-history/
+# uncomment the below to keep the history OUT of the repository
+# history/
 root-codex/
 .venv/
 .convx/
