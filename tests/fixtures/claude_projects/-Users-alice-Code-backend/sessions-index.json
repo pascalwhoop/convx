@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "sessionId": "aaaaaaaa-1111-2222-3333-444444440001",
+      "fullPath": null,
+      "fileMtime": 1700000001000,
+      "firstPrompt": "Plan migration for API auth",
+      "summary": "API Auth Migration Plan",
+      "messageCount": 4,
+      "created": "2026-01-15T10:00:00.000Z",
+      "modified": "2026-01-15T10:05:00.000Z",
+      "gitBranch": "main",
+      "projectPath": "/Users/alice/Code/backend",
+      "isSidechain": false
+    },
+    {
+      "sessionId": "bbbbbbbb-1111-2222-3333-444444440002",
+      "fullPath": null,
+      "fileMtime": 1700000002000,
+      "firstPrompt": "Add health check endpoint",
+      "summary": "Health Check Endpoint",
+      "messageCount": 2,
+      "created": "2026-01-15T11:00:00.000Z",
+      "modified": "2026-01-15T11:01:00.000Z",
+      "gitBranch": "main",
+      "projectPath": "/Users/alice/Code/backend",
+      "isSidechain": false
+    }
+  ],
+  "originalPath": "/Users/alice/Code/backend"
+}

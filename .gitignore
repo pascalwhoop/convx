@@ -1,0 +1,14 @@
+history/
+root-codex/
+.venv/
+.convx/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.env
+tmp/
+symlinks/

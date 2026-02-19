@@ -1,0 +1,2 @@
+{"type":"user","cwd":"/Users/alice/Code/backend/api","sessionId":"cccccccc-1111-2222-3333-444444440003","message":{"role":"user","content":"Refactor API routes"},"timestamp":"2026-01-15T12:00:00.000Z"}
+{"type":"assistant","cwd":"/Users/alice/Code/backend/api","sessionId":"cccccccc-1111-2222-3333-444444440003","message":{"role":"assistant","content":[{"type":"text","text":"I'll extract the routes into a separate module."}]},"timestamp":"2026-01-15T12:00:25.000Z"}

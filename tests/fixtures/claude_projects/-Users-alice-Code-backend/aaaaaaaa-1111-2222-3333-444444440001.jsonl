@@ -1,0 +1,2 @@
+{"type":"user","cwd":"/Users/alice/Code/backend","sessionId":"aaaaaaaa-1111-2222-3333-444444440001","message":{"role":"user","content":"Plan migration for API auth and backup strategy."},"timestamp":"2026-01-15T10:00:00.000Z"}
+{"type":"assistant","cwd":"/Users/alice/Code/backend","sessionId":"aaaaaaaa-1111-2222-3333-444444440001","message":{"role":"assistant","content":[{"type":"text","text":"Here is a phased migration approach."}]},"timestamp":"2026-01-15T10:00:30.000Z"}

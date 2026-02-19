@@ -1,0 +1,3 @@
+{"timestamp":"2026-02-15T12:05:10.100Z","type":"session_meta","payload":{"id":"aaaaaaaa-bbbb-cccc-dddd-eeeeeeee0002","timestamp":"2026-02-15T12:05:10.000Z","cwd":"/Users/alice/Code/other-project","originator":"codex_cli_rs","cli_version":"0.98.0","source":"cli","model_provider":"openai"}}
+{"timestamp":"2026-02-15T12:05:12.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"Discuss unrelated side project tasks."}]}}
+{"timestamp":"2026-02-15T12:05:40.000Z","type":"response_item","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"Side project tasks captured."}]}}
