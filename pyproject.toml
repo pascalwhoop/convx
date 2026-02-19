@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "convx-ai"
-version = "0.2.0"
+version = "0.2.1"
 description = "Idempotent conversation exporter for Codex, Claude, and Cursor."
 readme = "README.md"
 license = { text = "MIT" }
