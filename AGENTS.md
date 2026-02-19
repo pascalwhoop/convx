@@ -16,7 +16,7 @@ uv run pytest tests/test_integration_sync.py::test_name  # run a single test
 `convx` (convx-ai) exports AI session files into a Git repository as Markdown transcripts + hidden JSON blobs.
 
 **Data flow:**
-1. **Adapter** (`src/convx_ai/adapters/`) — discovers and parses source files into `NormalizedSession` / `NormalizedMessage` models. Currently only `CodexAdapter` (reads `~/.codex/sessions/*.jsonl`).
+1. **Adapter** (`src/convx_ai/adapters/`) — discovers and parses source files into `NormalizedSession` / `NormalizedMessage` models. Adapters: Codex (`~/.codex/sessions`), Claude (`~/.claude/projects`), Cursor (workspaceStorage).
 2. **Engine** (`engine.py`) — `sync_sessions()` orchestrates idempotency: loads `.convx/index.json`, fingerprints source files (SHA-256), skips unchanged sessions, calls the adapter to parse changed ones, then writes artifacts and updates the index.
 3. **Render** (`render.py`) — converts `NormalizedSession` to Markdown transcript or JSON string.
 4. **CLI** (`cli.py`) — two main commands built with Typer:

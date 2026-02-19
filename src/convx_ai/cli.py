@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import getpass
+import json
 import platform
 import shlex
 from pathlib import Path
@@ -82,7 +83,7 @@ def sync_command(
     source_system: str = typer.Option(
         "all",
         "--source-system",
-        help="Source system(s): codex, claude, or all (default).",
+        help="Source system(s): codex, claude, cursor, or all (default).",
     ),
     input_path: Path | None = typer.Option(
         None, "--input-path", help="Source sessions path override (per source)."
@@ -168,7 +169,7 @@ def backup_command(
         ..., "--output-path", help="Git repo that stores all exported conversations."
     ),
     source_system: str = typer.Option(
-        "codex", "--source-system", help="Conversation source system."
+        "codex", "--source-system", help="Source: codex, claude, or cursor."
     ),
     input_path: Path | None = typer.Option(
         None, "--input-path", help="Source sessions path override."
@@ -233,6 +234,10 @@ def explore_command(
 ) -> None:
     """Browse and search exported conversations in a TUI."""
     repo = _require_git_repo(output_path)
+    index_path = repo / ".convx" / "index.json"
+    if not index_path.exists():
+        typer.echo("No index found. Run `convx sync` or `convx backup` first.")
+        raise typer.Exit(1)
     ensure_index(repo)
     ExploreApp(repo).run()
 
@@ -293,14 +298,13 @@ def stats_command(
         ..., "--output-path", help="Git repo containing exported conversations."
     ),
 ) -> None:
+    """Show index totals and last update time."""
     output_repo = _require_git_repo(output_path)
     index_path = output_repo / ".convx" / "index.json"
     if not index_path.exists():
         typer.echo("index_found=false sessions=0")
         return
     content = index_path.read_text(encoding="utf-8")
-    import json
-
     parsed = json.loads(content)
     sessions = parsed.get("sessions", {})
     timestamps = sorted(record.get("updated_at", "") for record in sessions.values())

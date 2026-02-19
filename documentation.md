@@ -7,6 +7,8 @@ This document explains the internal architecture and sync behavior.
 - `sync` — run from inside a project repo; syncs only conversations from that repo into it.
 - `backup` — full export of all conversations into a dedicated backup repo (`--output-path` required).
 - `stats` — shows index totals for a given repo.
+- `explore` — TUI to browse and search exported conversations.
+- `hooks` — install/uninstall pre-commit hook that runs sync.
 
 ## Architecture
 
@@ -16,7 +18,7 @@ The exporter is split into four layers:
    - Typer entrypoint and option parsing.
 2. `adapters/`
    - Source-specific parsing and normalization.
-   - `codex.py` currently implements Codex JSONL ingestion.
+   - `codex.py`, `claude.py`, `cursor.py` implement Codex JSONL, Claude projects, and Cursor workspaceStorage.
 3. `engine.py`
    - Idempotent sync loop, index management, path mapping, and output writes.
 4. `render.py`
