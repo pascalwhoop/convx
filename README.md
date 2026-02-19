@@ -2,7 +2,7 @@
 
 Export AI conversation sessions into a Git repository using a readable, time-based structure.
 
-[![asciicast](https://asciinema.org/a/1a6pkdounBItr4nx.svg)](https://asciinema.org/a/1a6pkdounBItr4nx)
+![](docs/assets/cast.gif)
 
 ## What it does
 
