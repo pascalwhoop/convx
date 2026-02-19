@@ -18,7 +18,7 @@ classifiers = [
 ]
 
 dependencies = [
-  "plumbrc>=1.0.0",
+  "hyperscan>=0.2.0",
   "tantivy>=0.22",
   "textual>=8.0",
   "typer>=0.12.0",

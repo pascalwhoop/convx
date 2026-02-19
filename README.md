@@ -124,3 +124,7 @@ uv run convx explore --output-path /path/to/your/repo
 uv run convx hooks install
 uv run convx hooks uninstall
 ```
+
+## Secrets
+
+Exports are redacted by default (API keys, tokens, passwords → `[REDACTED]`). Be mindful of secrets in your history repo. See [docs/secrets.md](docs/secrets.md) for details and pre-commit scanner options (Gitleaks, TruffleHog, detect-secrets, semgrep).
