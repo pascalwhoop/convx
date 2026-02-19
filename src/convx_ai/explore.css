@@ -1,0 +1,10 @@
+#sessions {
+    width: 40;
+    min-width: 25;
+    scrollbar-size: 0 1;
+}
+
+#preview_scroll {
+    width: 1fr;
+    scrollbar-size: 0 1;
+}

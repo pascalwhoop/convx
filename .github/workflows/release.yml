@@ -72,8 +72,8 @@ jobs:
           uv version --bump patch
           NEW_VERSION=$(uv version --short)
           TAG="v$NEW_VERSION"
-          sed -i "s/__version__ = .*/__version__ = \"$NEW_VERSION\"/" src/conversation_exporter/__init__.py
-          git add pyproject.toml src/conversation_exporter/__init__.py
+          sed -i "s/__version__ = .*/__version__ = \"$NEW_VERSION\"/" src/convx_ai/__init__.py
+          git add pyproject.toml src/convx_ai/__init__.py
           git commit -m "chore: bump version to $NEW_VERSION [skip ci]"
           git tag -a "$TAG" -m "Release $TAG"
           git push origin main
@@ -87,7 +87,10 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://pypi.org/p/conversation-exporter
+      url: https://pypi.org/p/convx-ai
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -102,11 +105,9 @@ jobs:
           python-version: "3.12"
 
       - name: Build and publish to PyPI
-        env:
-          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
         run: |
           uv build
-          uv publish --token $UV_PUBLISH_TOKEN
+          uv publish
 
       - name: Store distributions
         uses: actions/upload-artifact@v4

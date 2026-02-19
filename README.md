@@ -16,7 +16,13 @@ Export AI conversation sessions into a Git repository using a readable, time-bas
 
 ## Install and run
 
-From `exporter/`:
+```bash
+pip install convx-ai
+# or: uv add convx-ai
+convx --help
+```
+
+From source:
 
 ```bash
 uv sync

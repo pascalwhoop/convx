@@ -4,9 +4,10 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-from conversation_exporter.models import NormalizedSession
-from conversation_exporter.render import first_user_text, render_json, render_markdown
-from conversation_exporter.utils import (
+from convx_ai.models import NormalizedSession
+from convx_ai.redact import redact_secrets
+from convx_ai.render import first_user_text, render_json, render_markdown
+from convx_ai.utils import (
     atomic_write_json,
     atomic_write_text,
     format_basename_timestamp,
@@ -97,6 +98,9 @@ def sync_sessions(
     dry_run: bool = False,
     repo_filter_path: Path | None = None,
     flat_output: bool = False,
+    redact: bool = True,
+    with_context: bool = False,
+    with_thinking: bool = False,
 ) -> SyncResult:
     history_root = output_repo_path / history_subpath
     index_path = output_repo_path / ".convx" / "index.json"
@@ -137,19 +141,34 @@ def sync_sessions(
             markdown_path = session_dir / "index.md"
             json_path = session_dir / ".index.json"
             if not dry_run:
-                atomic_write_text(markdown_path, render_markdown(session))
-                atomic_write_text(json_path, render_json(session))
+                atomic_write_text(
+                    markdown_path,
+                    redact_secrets(
+                        render_markdown(session, with_context=with_context, with_thinking=with_thinking),
+                        redact=redact,
+                    ),
+                )
+                atomic_write_text(json_path, redact_secrets(render_json(session), redact=redact))
                 for child in session.child_sessions:
                     atomic_write_text(
                         session_dir / f"agent-{child.session_id}.md",
-                        render_markdown(child),
+                        redact_secrets(
+                            render_markdown(child, with_context=with_context, with_thinking=with_thinking),
+                            redact=redact,
+                        ),
                     )
         else:
             markdown_path = out_dir / f"{basename}.md"
             json_path = out_dir / f".{basename}.json"
             if not dry_run:
-                atomic_write_text(markdown_path, render_markdown(session))
-                atomic_write_text(json_path, render_json(session))
+                atomic_write_text(
+                    markdown_path,
+                    redact_secrets(
+                        render_markdown(session, with_context=with_context, with_thinking=with_thinking),
+                        redact=redact,
+                    ),
+                )
+                atomic_write_text(json_path, redact_secrets(render_json(session), redact=redact))
 
         now = now_iso()
         records[session_key] = {
@@ -168,5 +187,13 @@ def sync_sessions(
             result.exported += 1
 
     if not dry_run:
+        _ensure_convx_gitignore(output_repo_path)
         atomic_write_json(index_path, index)
     return result
+
+
+def _ensure_convx_gitignore(repo_path: Path) -> None:
+    gitignore = repo_path / ".convx" / ".gitignore"
+    content = "*\n!.gitignore\n"
+    if not gitignore.exists() or gitignore.read_text() != content:
+        atomic_write_text(gitignore, content)

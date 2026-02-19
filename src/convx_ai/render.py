@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from conversation_exporter.models import NormalizedSession
+from convx_ai.models import NormalizedSession
 
 
 def first_user_text(session: NormalizedSession) -> str:
@@ -18,7 +18,12 @@ def _html_comment(content: str) -> str:
     return f"<!--\n{safe}\n-->"
 
 
-def render_markdown(session: NormalizedSession) -> str:
+def render_markdown(
+    session: NormalizedSession,
+    *,
+    with_context: bool = False,
+    with_thinking: bool = False,
+) -> str:
     lines: list[str] = []
     lines.append(f"# Conversation {session.session_id}")
     lines.append("")
@@ -36,6 +41,16 @@ def render_markdown(session: NormalizedSession) -> str:
 
     for message in session.messages:
         if message.kind in {"system", "tool"}:
+            if not with_context:
+                continue
+            label = message.role.upper()
+            ts = f" ({message.timestamp})" if message.timestamp else ""
+            inner = f"### {label}{ts}\n\n{message.text}"
+            lines.append(_html_comment(inner))
+            lines.append("")
+        elif message.kind == "thinking":
+            if not with_thinking:
+                continue
             label = message.role.upper()
             ts = f" ({message.timestamp})" if message.timestamp else ""
             inner = f"### {label}{ts}\n\n{message.text}"

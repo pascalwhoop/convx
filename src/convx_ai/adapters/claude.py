@@ -3,8 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from conversation_exporter.models import NormalizedMessage, NormalizedSession
-from conversation_exporter.utils import now_iso
+from convx_ai.models import NormalizedMessage, NormalizedSession
+from convx_ai.utils import now_iso
 
 
 def _encode_path(path: Path | str) -> str:

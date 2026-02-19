@@ -18,7 +18,7 @@ def _encode_path(p: Path) -> str:
 def _run_cli(args: list[str], cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
     env = {"PYTHONPATH": str(ROOT / "src"), "NO_COLOR": "1"}
     return subprocess.run(
-        [sys.executable, "-m", "conversation_exporter", *args],
+        [sys.executable, "-m", "convx_ai", *args],
         cwd=str(cwd or ROOT),
         env=env,
         text=True,

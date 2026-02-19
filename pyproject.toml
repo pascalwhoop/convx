@@ -3,7 +3,7 @@ requires = ["hatchling>=1.25.0"]
 build-backend = "hatchling.build"
 
 [project]
-name = "conversation-exporter"
+name = "convx-ai"
 version = "0.1.0"
 description = "Idempotent conversation exporter for Codex and other AI systems."
 readme = "README.md"
@@ -16,6 +16,7 @@ classifiers = [
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
 ]
+
 dependencies = [
   "plumbrc>=1.0.0",
   "tantivy>=0.22",
@@ -23,8 +24,12 @@ dependencies = [
   "typer>=0.12.0",
 ]
 
+[project.urls]
+Homepage = "https://github.com/pascalwhoop/convx"
+Repository = "https://github.com/pascalwhoop/convx"
+
 [project.scripts]
-convx = "conversation_exporter.cli:main"
+convx = "convx_ai.cli:main"
 
 [dependency-groups]
 dev = [
