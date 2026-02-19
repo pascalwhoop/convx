@@ -24,6 +24,42 @@ def _folder_to_cwd(folder: str) -> str:
     return path
 
 
+def _path_under(cwd: str, resolved_repo: Path) -> bool:
+    try:
+        Path(cwd).resolve().relative_to(resolved_repo)
+        return True
+    except ValueError:
+        return False
+
+
+def _workspace_folders(wj: dict) -> list[str]:
+    """Return cwd strings from a workspace.json (single-folder or multi-root)."""
+    folder = wj.get("folder", "")
+    if folder:
+        cwd = _folder_to_cwd(folder)
+        return [cwd] if cwd else []
+    workspace_uri = wj.get("workspace", "")
+    if not workspace_uri:
+        return []
+    workspace_file = _folder_to_cwd(workspace_uri)
+    if not workspace_file:
+        return []
+    try:
+        workspace_path = Path(workspace_file)
+        base = workspace_path.parent
+        wf = json.loads(workspace_path.read_text(encoding="utf-8"))
+        result = []
+        for f in wf.get("folders", []):
+            p = f.get("path", "")
+            if not isinstance(p, str) or not p:
+                continue
+            fp = Path(p)
+            result.append(str((base / fp).resolve() if not fp.is_absolute() else fp))
+        return result
+    except (OSError, json.JSONDecodeError, KeyError):
+        return []
+
+
 def _epoch_ms_to_iso(ms: int | None) -> str:
     if ms is None:
         return now_iso()
@@ -140,10 +176,17 @@ class CursorAdapter:
                 continue
             try:
                 wj = json.loads(wj_path.read_text(encoding="utf-8"))
-                folder = wj.get("folder", "")
-                cwd = _folder_to_cwd(folder)
+                folders = _workspace_folders(wj)
             except (json.JSONDecodeError, KeyError):
-                cwd = ""
+                folders = []
+            # For multi-root workspaces pick the folder matching the filter (if any).
+            # For single-folder workspaces use the only folder.
+            if repo_filter_path and len(folders) > 1:
+                resolved_repo = repo_filter_path.resolve()
+                matching = [f for f in folders if _path_under(f, resolved_repo)]
+                cwd = matching[0] if matching else ""
+            else:
+                cwd = folders[0] if folders else ""
             try:
                 conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
                 row = conn.execute(
@@ -157,19 +200,17 @@ class CursorAdapter:
                     data = json.loads(text)
                     for c in data.get("allComposers", []):
                         cid = c.get("composerId")
-                        if cid:
+                        if cid and (cid not in composer_id_to_cwd or not composer_id_to_cwd[cid]):
                             composer_id_to_cwd[cid] = cwd
             except (sqlite3.Error, json.JSONDecodeError):
                 pass
 
         def _under_repo(cwd: str) -> bool:
-            if not repo_filter_path or not cwd:
+            if not repo_filter_path:
                 return True
-            try:
-                Path(cwd).resolve().relative_to(repo_filter_path.resolve())
-                return True
-            except ValueError:
+            if not cwd:
                 return False
+            return _path_under(cwd, repo_filter_path.resolve())
 
         for ws_dir in sorted(workspace_storage.iterdir()):
             if not ws_dir.is_dir():
@@ -180,11 +221,17 @@ class CursorAdapter:
                 continue
             try:
                 wj = json.loads(wj_path.read_text(encoding="utf-8"))
-                cwd = _folder_to_cwd(wj.get("folder", ""))
+                folders = _workspace_folders(wj)
             except (json.JSONDecodeError, KeyError):
-                cwd = ""
-            if repo_filter_path and not _under_repo(cwd):
-                continue
+                folders = []
+            if repo_filter_path:
+                resolved_repo = repo_filter_path.resolve()
+                matching = [f for f in folders if _path_under(f, resolved_repo)]
+                if not matching:
+                    continue
+                cwd = matching[0]
+            else:
+                cwd = folders[0] if folders else ""
             try:
                 conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
                 row = conn.execute(

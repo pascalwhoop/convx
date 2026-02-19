@@ -2,6 +2,8 @@
 
 Export AI conversation sessions into a Git repository using a readable, time-based structure.
 
+![](docs/assets/screenshot.png)
+
 ## What it does
 
 - Scans source session files (Codex JSONL, Claude projects, Cursor workspaceStorage).
@@ -13,6 +15,7 @@ Export AI conversation sessions into a Git repository using a readable, time-bas
     - `sync`: `history/<user>/<source-system>/` (flat — sessions directly inside)
     - `backup`: `history/<user>/<source-system>/<system-name>/<path-relative-to-home>/...`
 - Runs idempotently (only reprocesses changed or new sessions).
+- Cursor: supports both single-folder and multi-root (`.code-workspace`) windows — sessions are attributed to the matching repo folder.
 
 ## Install and run
 
@@ -58,6 +61,7 @@ uv run convx backup \
     - default for Codex: `~/.codex/sessions`
     - default for Claude: `~/.claude/projects`
     - default for Cursor: `~/Library/Application Support/Cursor/User/workspaceStorage` (macOS)
+      Supports both single-folder and multi-root (`.code-workspace`) Cursor windows.
 - `--user`: user namespace for history path (default: current OS user).
 - `--system-name`: system namespace for history path (default: hostname).
 - `--dry-run`: discover and plan without writing files.

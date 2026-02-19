@@ -119,3 +119,18 @@ So: **fully installable via `uv sync` or pip**, with no extra binary install ste
 ## User
 
 let's add docs to docs/secrets.md about how this works from user perspective and technicaily
+
+## Agent
+
+Added `docs/secrets.md` with:
+
+- **User perspective:** Redaction on by default; `--no-redact` for sync/backup; what gets redacted vs left alone; that secrets appear as `[REDACTED:...]` in the written files.
+- **Technical:** plumbrc and its pattern set; redaction applied after render, before write, to markdown and JSON (not the index); where it’s implemented (redact module + engine) and how the CLI passes the flag. Also notes that if plumbrc isn’t available, redaction is skipped and content is written unchanged.
+
+## User
+
+obviously we don't take any liability for people... they are responsible for making sure they don't leak secrets into the repo.
+
+## Agent
+
+Added this sentence to the intro: “You are responsible for ensuring no secrets are committed; we provide no warranty or liability.”

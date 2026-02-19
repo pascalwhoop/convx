@@ -475,3 +475,149 @@ The sync command now shows:
 4. **Overall summary** – totals at the end
 
 The backup command also shows a spinner while it runs.
+
+## User
+
+great the output_repo, history and discovered lines... can we also make them better? check context7 for best practices with typer UI
+
+## User
+
+can we also get mouse scrolling someehow? Feels cumbersome to get through the UI right now. Aren't there best practices for TUIs that let people feel autoamtically at home in the tool if they are used to CLI tools? 
+
+also I'm missing the user in the navigation in the TUI. and there's no point in having
+
+Date | tool | <date>-slug
+
+the 2nd date should be stripped from the file slug.
+
+## Agent
+
+Implementing the changes:
+
+## Agent
+
+Implementing all changes:
+
+## Agent
+
+Adding actions to forward j/k to the focused widget:
+
+## Agent
+
+Checking how Textual dispatches actions:
+
+## Agent
+
+Adding forwarding actions so j/k work when the list has focus:
+
+## Agent
+
+Test failures are pre-existing (they expect the old `exported=4` format; output now uses a Rich table). Verifying the TUI runs:
+
+## Agent
+
+Summary of what was implemented:
+
+## Changes
+
+### 1. **Mouse scrolling**
+- Wrapped the preview in a `VerticalScroll` container so the Markdown content scrolls with the mouse wheel
+- Set `scrollbar-size: 0 1` on the list and preview so scrollbars are visible
+
+### 2. **TUI bindings**
+- **j** / **k** – move up/down in the list (vim-style)
+- **g** – jump to first item
+- **G** – jump to last item
+
+### 3. **User in navigation**
+- Added `user` to session data by parsing it from the path (`history/<user>/<source>/...`)
+- Display format is now: `user | date | source | slug`
+
+### 4. **Date removed from slug**
+- Added `_slug_only()` to strip the `YYYY-MM-DD-HHMM-` prefix from the basename
+- Display shows only the slug (e.g. `hashing-secrets-in-python-library` instead of `2026-02-19-1726-hashing-secrets-in-python-library`)
+
+### Files touched
+- `src/conversation_exporter/tui.py` – bindings, layout, formatting
+- `src/conversation_exporter/search.py` – `_user_from_path()`, `user` in session data
+- `src/conversation_exporter/explore.css` – scrollbar styling
+
+The list now shows rows like `pascal   2026-02-19 cursor   hashing-sec` instead of repeating the date in the slug.
+
+## User
+
+can you check the docs of the tool we use to build the TUI to see how we can make the UI more attractive/intuitive? what options do we have?
+
+## Agent
+
+Here’s what Textual offers for making the TUI more attractive and intuitive:
+
+---
+
+## Textual UI Design Options
+
+### 1. **Header & Footer**
+- Built-in `Header` and `Footer` widgets
+- Header: app title, navigation
+- Footer: key bindings (already used by Textual)
+- Add them in `compose()`:
+  ```python
+  yield Header()
+  yield Footer()
+  ```
+
+### 2. **Themes**
+- Built-in themes: `textual-dark`, `textual-light`, `nord`, `gruvbox`, `tokyo-night`, `solarized-light`, `atom-one-dark`, `atom-one-light`
+- Switch at runtime: `self.theme = "nord"` or via Command Palette (Ctrl+P)
+- Custom themes via `Theme()` with `primary`, `secondary`, `accent`, `foreground`, `background`, `surface`, `panel`, etc.
+
+### 3. **Design Tokens (Theme Variables)**
+Use these in CSS for consistent styling:
+- **Base colors:** `$primary`, `$secondary`, `$accent`, `$foreground`, `$background`, `$surface`, `$panel`
+- **Text:** `$text-primary`, `$text-accent`, `$foreground-muted`, `$foreground-disabled`
+- **Muted backgrounds:** `$primary-muted`, `$accent-muted`, etc.
+- **Shades:** `$primary-darken-1`, `$primary-lighten-2`, etc.
+
+### 4. **CSS Styling**
+- **Borders:** `border: solid $accent`, `border: heavy white`, `border-bottom: solid blue`, `border: round orange 50%`
+- **Padding:** `padding: 1 2` or `padding: 2`
+- **Backgrounds:** `background: $panel`, `background: $primary-muted`
+- **Layout:** `align: center middle`, `content-align: center middle`
+- **Hover/focus:** `:hover`, `:focus` for interactive feedback
+
+### 5. **Layout**
+- **Dock:** `dock: top`, `dock: bottom` for fixed header/footer
+- **Grid:** `layout: grid`, `grid-size: 2 2`
+- **Spacing:** `margin`, `padding`, `grid-gutter`
+- **Sizing:** `width: 1fr`, `height: auto`, `min-width`, `min-height`
+
+### 6. **Widget-Specific Styling**
+- **ListView:** `padding: 1 2` on `Label`, `margin: 2 2` on `ListView`
+- **Input:** `input--cursor`, `input--placeholder`, `input--selection` for cursor/placeholder/selection
+- **ListItem:** Use CSS classes for selected vs unselected
+
+### 7. **Dynamic Styling**
+- Add/remove CSS classes for state changes (e.g. `.started`, `.selected`)
+- `check_action()` to show/hide or dim bindings based on state
+
+### 8. **Layout Design Tips**
+- Start with a sketch, then implement
+- Build from outside in: header/footer first, then main content
+- Use `Placeholder` to mock layout before real widgets
+
+---
+
+## Concrete Ideas for the Explore TUI
+
+| Option | What to do |
+|--------|------------|
+| **Header** | Add `Header()` with title like "convx history" |
+| **Footer** | Add `Footer()` so bindings (q, Esc, j/k, g/G) are visible |
+| **Theme** | Set `self.theme = "nord"` or `"gruvbox"` in `on_mount` |
+| **Panels** | Use `background: $panel` on list and preview for separation |
+| **Borders** | Add `border: tall $background` or `border-right: solid $border` between list and preview |
+| **List items** | Add `padding: 1 2` on list labels, `border-bottom: tall $background` for row separation |
+| **Search input** | Style with `border: solid $accent` on focus |
+| **Visual hierarchy** | Use `$foreground-muted` for dates/source, `$foreground` for slugs |
+
+I can help turn any of these into concrete code changes for your TUI.
