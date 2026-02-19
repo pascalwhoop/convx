@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -15,7 +16,7 @@ def _encode_path(p: Path) -> str:
 
 
 def _run_cli(args: list[str], cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
-    env = {"PYTHONPATH": str(ROOT / "src")}
+    env = {"PYTHONPATH": str(ROOT / "src"), "NO_COLOR": "1"}
     return subprocess.run(
         [sys.executable, "-m", "conversation_exporter", *args],
         cwd=str(cwd or ROOT),
@@ -24,6 +25,13 @@ def _run_cli(args: list[str], cwd: Path | None = None) -> subprocess.CompletedPr
         capture_output=True,
         check=False,
     )
+
+
+def _assert_backup_counts(stdout: str, exported: int | None = None, skipped: int | None = None) -> None:
+    if exported is not None:
+        assert re.search(rf"Exported\s+{exported}\b", stdout), f"Expected Exported {exported} in {stdout!r}"
+    if skipped is not None:
+        assert re.search(rf"Skipped\s+{skipped}\b", stdout), f"Expected Skipped {skipped} in {stdout!r}"
 
 
 def _init_git_repo(path: Path) -> None:
@@ -119,7 +127,7 @@ def test_claude_backup_writes_session_folders(tmp_path: Path) -> None:
         "--system-name", "macbook-pro",
     ])
     assert run.returncode == 0, run.stderr
-    assert "exported=4" in run.stdout
+    _assert_backup_counts(run.stdout, exported=4)
 
     history = output_repo / "history" / "alice" / "claude" / "macbook-pro"
     session_dirs = sorted(history.rglob("index.md"))
@@ -148,7 +156,7 @@ def test_claude_backup_is_idempotent(tmp_path: Path) -> None:
         "--system-name", "macbook-pro",
     ])
     assert run_one.returncode == 0, run_one.stderr
-    assert "exported=4" in run_one.stdout
+    _assert_backup_counts(run_one.stdout, exported=4)
 
     run_two = _run_cli([
         "backup",
@@ -159,7 +167,7 @@ def test_claude_backup_is_idempotent(tmp_path: Path) -> None:
         "--system-name", "macbook-pro",
     ])
     assert run_two.returncode == 0, run_two.stderr
-    assert "skipped=4" in run_two.stdout
+    _assert_backup_counts(run_two.stdout, skipped=4)
 
 
 def test_claude_sync_filters_to_repo_and_subfolders(tmp_path: Path) -> None:

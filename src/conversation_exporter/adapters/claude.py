@@ -77,7 +77,6 @@ def _parse_claude_jsonl(
 
         timestamp = obj.get("timestamp")
         msg = obj.get("message", {})
-        role = msg.get("role", "")
         content = msg.get("content", [])
 
         if obj_type == "user":
@@ -107,7 +106,7 @@ def _parse_claude_jsonl(
                 )
             elif content_type == "thinking":
                 messages.append(
-                    NormalizedMessage(role="reasoning", text=text, timestamp=timestamp, kind="system")
+                    NormalizedMessage(role="reasoning", text=text, timestamp=timestamp, kind="thinking")
                 )
             else:
                 messages.append(
