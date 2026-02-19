@@ -32,7 +32,7 @@ jobs:
         run: uv sync
 
       - name: Run tests
-        run: uv run pytest
+        run: uv run pytest -v --tb=short
 
   lint:
     name: Lint code
