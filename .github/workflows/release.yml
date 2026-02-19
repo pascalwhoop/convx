@@ -37,7 +37,14 @@ jobs:
         run: uv sync
 
       - name: Run tests
-        run: uv run pytest -v --tb=short
+        run: uv run pytest -v --tb=short 2>&1 | tee test-output.txt; exit ${PIPESTATUS[0]}
+
+      - name: Upload test output on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-output
+          path: test-output.txt
 
   version:
     name: Bump version and create tag

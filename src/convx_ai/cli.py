@@ -13,8 +13,6 @@ from rich.table import Table
 
 from convx_ai.adapters import default_input_path, get_adapter
 from convx_ai.engine import SyncResult, sync_sessions
-from convx_ai.search import ensure_index
-from convx_ai.tui import ExploreApp
 from convx_ai.utils import sanitize_segment
 
 app = typer.Typer(help="Export AI conversations into a Git repo.", no_args_is_help=True)
@@ -233,6 +231,9 @@ def explore_command(
     ),
 ) -> None:
     """Browse and search exported conversations in a TUI."""
+    from convx_ai.search import ensure_index
+    from convx_ai.tui import ExploreApp
+
     repo = _require_git_repo(output_path)
     index_path = repo / ".convx" / "index.json"
     if not index_path.exists():

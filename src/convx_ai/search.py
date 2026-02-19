@@ -4,10 +4,10 @@ import json
 import shutil
 from pathlib import Path
 
-from tantivy import Document, Index, SchemaBuilder
-
 
 def _schema():
+    from tantivy import SchemaBuilder
+
     return (
         SchemaBuilder()
         .add_text_field("session_key", stored=True)
@@ -34,6 +34,8 @@ def ensure_index(repo: Path) -> None:
     if search_dir.exists():
         shutil.rmtree(search_dir)
     search_dir.mkdir(parents=True)
+    from tantivy import Document, Index
+
     schema = _schema()
     index = Index(schema=schema, path=str(search_dir))
     writer = index.writer(heap_size=15_000_000, num_threads=1)
@@ -84,6 +86,8 @@ def list_sessions(repo: Path) -> list[dict]:
 
 
 def query_index(repo: Path, q: str, limit: int = 50) -> list[dict]:
+    from tantivy import Index
+
     search_dir = repo / ".convx" / "search-index"
     if not search_dir.exists():
         return []
