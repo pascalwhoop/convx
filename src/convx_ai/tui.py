@@ -1,27 +1,63 @@
 from __future__ import annotations
 
+import asyncio
 import re
 from pathlib import Path
 
+from rapidfuzz import fuzz, process
+from textual import work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.containers import Horizontal, Vertical, VerticalScroll
+from textual.containers import Vertical, VerticalScroll
 from textual.widgets import Input, Label, ListItem, ListView, Markdown
 
 from convx_ai.search import list_sessions, query_index
-from textual.fuzzy import FuzzySearch
 
 
 def _slug_only(basename: str) -> str:
     return re.sub(r"^\d{4}-\d{2}-\d{2}-\d{4}-", "", basename)
 
 
+def _slug_readable(slug: str) -> str:
+    return slug.replace("-", " ")
+
+
+def _compact_folder(path: str, max_width: int) -> str:
+    """Fish-style: abbreviate intermediate segments to first 3 chars, keep last full."""
+    if not path:
+        return ""
+    parts = path.split("/")
+    if len(parts) == 1:
+        return path[:max_width] if len(path) > max_width else path
+    intermediates = [p[:3] for p in parts[:-1]]
+    last = parts[-1]
+    compacted = "/".join(intermediates) + "/" + last
+    if len(compacted) > max_width:
+        return "..." + compacted[-(max_width - 3) :]
+    return compacted
+
+
+W_USER = 8
+W_DATE = 10
+W_SOURCE = 8
+W_FOLDER = 26
+W_SLUG = 44
+
+
+def _cell(s: str, width: int) -> str:
+    if len(s) > width:
+        s = s[: width - 3] + "..."
+    return s.ljust(width)[:width]
+
+
 def _format_session(s: dict) -> str:
-    user = s.get("user", "")
-    date = (s.get("date") or "")[:10]
-    source = s.get("source", "")
-    slug = _slug_only(s.get("title") or "")[:50]
-    return f"{user:8} {date} {source:8} {slug}"
+    user = _cell((s.get("user") or ""), W_USER)
+    date = _cell((s.get("date") or "")[:10], W_DATE)
+    source = _cell((s.get("source") or ""), W_SOURCE)
+    folder_raw = s.get("folder", "")
+    folder = _cell(_compact_folder(folder_raw, W_FOLDER), W_FOLDER)
+    slug = _cell(_slug_readable(_slug_only(s.get("title") or "")), W_SLUG)
+    return f"{user} {date} {source} {folder} │ {slug}"
 
 
 class ExploreApp(App[None]):
@@ -30,6 +66,9 @@ class ExploreApp(App[None]):
     BINDINGS = [
         Binding("escape", "clear_search", "Clear search"),
         Binding("q", "quit", "Quit"),
+        Binding("tab", "focus_next", "Next pane", show=False),
+        Binding("shift+tab", "focus_previous", "Prev pane", show=False),
+        Binding("l", "focus_list", "List", show=False),
         Binding("j", "cursor_down", "Down", show=False),
         Binding("k", "cursor_up", "Up", show=False),
         Binding("g", "cursor_home", "Top", show=False),
@@ -41,21 +80,21 @@ class ExploreApp(App[None]):
         self.repo = repo
         self.sessions: list[dict] = []
         self.displayed: list[dict] = []
-        self.fuzzy = FuzzySearch()
+        self._formatted: list[str] = []
 
     def compose(self) -> ComposeResult:
         with Vertical():
             yield Input(placeholder="Search... (Enter for full-text)", id="search")
-            with Horizontal():
-                yield ListView(id="sessions")
-                with VerticalScroll(id="preview_scroll"):
-                    yield Markdown("", id="preview")
+            yield ListView(id="sessions")
+            with VerticalScroll(id="preview_scroll"):
+                yield Markdown("", id="preview")
 
     def on_mount(self) -> None:
         self.sessions = list_sessions(self.repo)
+        self._formatted = [_format_session(s) for s in self.sessions]
         self.displayed = self.sessions
         self._refresh_list()
-        self.query_one("#search", Input).focus()
+        self.query_one("#sessions", ListView).focus()
 
     def _refresh_list(self) -> None:
         lst = self.query_one("#sessions", ListView)
@@ -65,8 +104,15 @@ class ExploreApp(App[None]):
         if self.displayed:
             lst.index = 0
             self._show_preview(self.displayed[0])
+        else:
+            self._show_preview(None)
 
-    def _show_preview(self, s: dict) -> None:
+    def _show_preview(self, s: dict | None) -> None:
+        if s is None:
+            self.query_one("#preview", Markdown).update(
+                "*Select a session (↑↓ j k) to view conversation.*"
+            )
+            return
         path = self.repo / s["path"]
         if path.exists():
             content = path.read_text(encoding="utf-8")
@@ -74,24 +120,35 @@ class ExploreApp(App[None]):
         else:
             self.query_one("#preview", Markdown).update("")
 
-    def _apply_fuzzy(self, query: str) -> None:
+    @work(exclusive=True)
+    async def _apply_fuzzy(self, query: str) -> None:
+        # Debounce: if another keystroke arrives within 80ms this coroutine is
+        # cancelled before we touch the DOM at all.
+        await asyncio.sleep(0.08)
         if not query.strip():
             self.displayed = self.sessions
         else:
-            matched = []
-            for s in self.sessions:
-                score, _ = self.fuzzy.match(query, _format_session(s))
-                if score > 0:
-                    matched.append((score, s))
-            matched.sort(key=lambda x: -x[0])
-            self.displayed = [s for _, s in matched]
+            hits = await asyncio.get_event_loop().run_in_executor(
+                None,
+                lambda: process.extract(
+                    query,
+                    self._formatted,
+                    scorer=fuzz.WRatio,
+                    limit=50,
+                    score_cutoff=30,
+                ),
+            )
+            self.displayed = [self.sessions[idx] for _, _, idx in hits]
         self._refresh_list()
 
-    def _run_tantivy(self, query: str) -> None:
+    @work(exclusive=True)
+    async def _run_tantivy(self, query: str) -> None:
         if not query.strip():
             self.displayed = self.sessions
         else:
-            self.displayed = query_index(self.repo, query, limit=50)
+            self.displayed = await asyncio.get_event_loop().run_in_executor(
+                None, lambda: query_index(self.repo, query, limit=50)
+            )
         self._refresh_list()
 
     def on_input_changed(self, event: Input.Changed) -> None:
@@ -128,3 +185,6 @@ class ExploreApp(App[None]):
         if self.displayed:
             lst.index = len(self.displayed) - 1
             self._show_preview(self.displayed[-1])
+
+    def action_focus_list(self) -> None:
+        self.query_one("#sessions", ListView).focus()

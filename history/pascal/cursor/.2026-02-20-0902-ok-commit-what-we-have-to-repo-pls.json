@@ -1,0 +1,20 @@
+{
+  "child_sessions": null,
+  "cwd": "/Users/pascal/Code/business/convx",
+  "messages": [
+    {
+      "kind": "user",
+      "role": "user",
+      "text": "ok commit what we have to repo pls.",
+      "timestamp": null
+    }
+  ],
+  "session_id": "c59e6229-17a9-4633-be1f-97e79c839e17",
+  "session_key": "cursor:c59e6229-17a9-4633-be1f-97e79c839e17",
+  "source_path": "/Users/pascal/Library/Application Support/Cursor/User/globalStorage/state.vscdb",
+  "source_system": "cursor",
+  "started_at": "2026-02-20T09:02:23.451000Z",
+  "summary": null,
+  "system_name": "Pascals-MBP.local",
+  "user": "pascal"
+}

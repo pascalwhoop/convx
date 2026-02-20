@@ -27,6 +27,12 @@ def _require_git_repo(path: Path) -> Path:
     return resolved
 
 
+def _resolve_output_path(path: Path) -> Path:
+    resolved = path.expanduser().resolve()
+    resolved.mkdir(parents=True, exist_ok=True)
+    return resolved
+
+
 def _resolve_input(source_system: str, input_path: Path | None) -> Path:
     if input_path is not None:
         return input_path.expanduser().resolve()
@@ -111,6 +117,11 @@ def sync_command(
     with_thinking: bool = typer.Option(
         False, "--with-thinking", help="Include AI reasoning/thinking blocks as HTML comments."
     ),
+    skip_if_contains: str = typer.Option(
+        "CONVX_NO_SYNC",
+        "--skip-if-contains",
+        help="Do not sync conversations that contain this string (pass empty to disable).",
+    ),
 ) -> None:
     """Sync conversations for the current Git repo into it."""
     project_repo = _require_git_repo(Path.cwd())
@@ -136,6 +147,7 @@ def sync_command(
                 redact=not no_redact,
                 with_context=with_context,
                 with_thinking=with_thinking,
+                skip_if_contains=skip_if_contains,
             )
             total.discovered += result.discovered
             total.exported += result.exported
@@ -164,13 +176,13 @@ def sync_command(
 @app.command("backup")
 def backup_command(
     output_path: Path = typer.Option(
-        ..., "--output-path", help="Git repo that stores all exported conversations."
+        ..., "--output-path", help="Directory to export conversations to (created if missing)."
     ),
     source_system: str = typer.Option(
-        "codex", "--source-system", help="Source: codex, claude, or cursor."
+        "all", "--source-system", help="Source system(s): codex, claude, cursor, or all (default)."
     ),
     input_path: Path | None = typer.Option(
-        None, "--input-path", help="Source sessions path override."
+        None, "--input-path", help="Source sessions path override (per source)."
     ),
     user: str = typer.Option(
         getpass.getuser(), "--user", help="User namespace in output history path."
@@ -197,29 +209,47 @@ def backup_command(
     with_thinking: bool = typer.Option(
         False, "--with-thinking", help="Include AI reasoning/thinking blocks as HTML comments."
     ),
+    skip_if_contains: str = typer.Option(
+        "CONVX_NO_SYNC",
+        "--skip-if-contains",
+        help="Do not sync conversations that contain this string (pass empty to disable).",
+    ),
 ) -> None:
-    """Full backup of all conversations into a target Git repo."""
-    output_repo = _require_git_repo(output_path)
-    source = sanitize_segment(source_system.lower())
+    """Full backup of all conversations into a directory (created if missing)."""
+    output_repo = _resolve_output_path(output_path)
+    sources = _source_systems(source_system)
+    total = SyncResult()
     console = Console()
-    with console.status(f"Processing {source}...", spinner="dots") as status:
-        adapter = get_adapter(source)
-        source_input = _resolve_input(source, input_path)
-        result = sync_sessions(
-            adapter=adapter,
-            input_path=source_input,
-            output_repo_path=output_repo,
-            history_subpath=history_subpath,
-            source_system=source,
-            user=sanitize_segment(user),
-            system_name=sanitize_segment(system_name),
-            dry_run=dry_run,
-            redact=not no_redact,
-            with_context=with_context,
-            with_thinking=with_thinking,
-        )
-        status.update(f"{source}: discovered={result.discovered} exported={result.exported}")
-    _print_result(result, output_repo=output_repo, history_subpath=history_subpath)
+    for i, source in enumerate(sources, 1):
+        step = f"[{i}/{len(sources)}]"
+        with console.status(f"{step} Processing {source}...", spinner="dots") as status:
+            adapter = get_adapter(source)
+            source_input = _resolve_input(source, input_path)
+            result = sync_sessions(
+                adapter=adapter,
+                input_path=source_input,
+                output_repo_path=output_repo,
+                history_subpath=history_subpath,
+                source_system=source,
+                user=sanitize_segment(user),
+                system_name=sanitize_segment(system_name),
+                dry_run=dry_run,
+                redact=not no_redact,
+                with_context=with_context,
+                with_thinking=with_thinking,
+                skip_if_contains=skip_if_contains,
+            )
+            total.discovered += result.discovered
+            total.exported += result.exported
+            total.updated += result.updated
+            total.skipped += result.skipped
+            total.filtered += result.filtered
+            total.dry_run = dry_run
+            status.update(
+                f"{step} {source}: discovered={result.discovered} exported={result.exported} skipped={result.skipped} filtered={result.filtered}"
+            )
+        console.print(f"  {source}: discovered={result.discovered} exported={result.exported} updated={result.updated} skipped={result.skipped} filtered={result.filtered}")
+    _print_result(total, output_repo=output_repo, history_subpath=history_subpath)
 
 
 @app.command("explore")
@@ -227,14 +257,16 @@ def explore_command(
     output_path: Path = typer.Option(
         Path.cwd(),
         "--output-path",
-        help="Git repo containing exported conversations.",
+        help="Directory containing exported conversations.",
     ),
 ) -> None:
     """Browse and search exported conversations in a TUI."""
     from convx_ai.search import ensure_index
     from convx_ai.tui import ExploreApp
 
-    repo = _require_git_repo(output_path)
+    repo = output_path.expanduser().resolve()
+    if not repo.exists():
+        raise typer.BadParameter(f"Path does not exist: {repo}")
     index_path = repo / ".convx" / "index.json"
     if not index_path.exists():
         typer.echo("No index found. Run `convx sync` or `convx backup` first.")

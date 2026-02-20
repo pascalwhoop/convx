@@ -93,6 +93,26 @@ def test_sync_filters_to_current_git_repository(tmp_path: Path) -> None:
     assert len(markdown_files) == 1
 
 
+def test_sync_skips_conversations_containing_marker(tmp_path: Path) -> None:
+    project_repo = tmp_path / "backend"
+    _init_git_repo(project_repo)
+
+    run = _run_cli([
+        "sync",
+        "--source-system", "codex",
+        "--input-path", str(FIXTURES),
+        "--user", "alice",
+        "--system-name", "macbook-pro",
+        "--skip-if-contains", "Plan",
+    ], cwd=project_repo)
+    assert run.returncode == 0, run.stderr
+    assert "filtered=2" in run.stdout
+    assert "exported=0" in run.stdout
+
+    history_root = project_repo / "history" / "alice" / "codex"
+    assert not history_root.exists() or len(list(history_root.rglob("*.md"))) == 0
+
+
 def test_secrets_redacted_in_output(tmp_path: Path) -> None:
     output_repo = tmp_path / "backup-repo"
     _init_git_repo(output_repo)

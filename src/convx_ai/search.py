@@ -48,7 +48,7 @@ def ensure_index(repo: Path) -> None:
         doc.add_text("session_key", record["session_key"])
         doc.add_text("title", record.get("basename", ""))
         doc.add_text("content", content)
-        doc.add_text("date", record.get("updated_at", ""))
+        doc.add_text("date", record.get("started_at") or record.get("updated_at", ""))
         doc.add_text("source", record.get("source_system", ""))
         doc.add_text("path", record["markdown_path"])
         writer.add_document(doc)
@@ -63,6 +63,14 @@ def _user_from_path(path: str) -> str:
     return ""
 
 
+def _folder_from_path(path: str) -> str:
+    """Directory subpath after history/user/source (empty when flat)."""
+    parts = path.split("/")
+    if len(parts) <= 4 or parts[0] != "history":
+        return ""
+    return "/".join(parts[3:-1])
+
+
 def list_sessions(repo: Path) -> list[dict]:
     index_path = repo / ".convx" / "index.json"
     if not index_path.exists():
@@ -72,17 +80,21 @@ def list_sessions(repo: Path) -> list[dict]:
     out = []
     for r in sessions.values():
         path = r["markdown_path"]
+        date = r.get("started_at") or r.get("updated_at", "")
         out.append(
             {
                 "session_key": r["session_key"],
                 "title": r.get("basename", ""),
-                "date": r.get("updated_at", ""),
+                "date": date,
                 "source": r.get("source_system", ""),
                 "path": path,
                 "user": _user_from_path(path),
+                "folder": _folder_from_path(path),
             }
         )
-    return sorted(out, key=lambda x: x["date"], reverse=True)
+    out.sort(key=lambda x: x["path"])
+    out.sort(key=lambda x: x["date"], reverse=True)
+    return out
 
 
 def query_index(repo: Path, q: str, limit: int = 50) -> list[dict]:
@@ -118,6 +130,7 @@ def query_index(repo: Path, q: str, limit: int = 50) -> list[dict]:
                 "source": _v("source"),
                 "path": path,
                 "user": _user_from_path(path),
+                "folder": _folder_from_path(path),
             }
         )
     return out

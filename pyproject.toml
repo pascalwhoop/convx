@@ -19,6 +19,7 @@ classifiers = [
 
 dependencies = [
   "hyperscan>=0.2.0",
+  "rapidfuzz>=3.0",
   "tantivy>=0.22",
   "textual>=8.0",
   "typer>=0.12.0",

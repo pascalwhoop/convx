@@ -1,10 +1,11 @@
 #sessions {
-    width: 40;
-    min-width: 25;
+    height: 40%;
+    min-height: 8;
     scrollbar-size: 0 1;
+    overflow-x: auto;
 }
 
 #preview_scroll {
-    width: 1fr;
+    height: 1fr;
     scrollbar-size: 0 1;
 }

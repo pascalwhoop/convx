@@ -71,6 +71,19 @@ def _session_basename(session: NormalizedSession, preferred: str | None) -> str:
     return f"{stamp}-{slug}"
 
 
+def _session_contains(session: NormalizedSession, needle: str) -> bool:
+    if not needle:
+        return False
+    for msg in session.messages:
+        if msg.text and needle in msg.text:
+            return True
+    if session.child_sessions:
+        for child in session.child_sessions:
+            if _session_contains(child, needle):
+                return True
+    return False
+
+
 def _is_under_repo(cwd: str, repo_path: Path) -> bool:
     if not cwd:
         return False
@@ -101,6 +114,7 @@ def sync_sessions(
     redact: bool = True,
     with_context: bool = False,
     with_thinking: bool = False,
+    skip_if_contains: str = "CONVX_NO_SYNC",
 ) -> SyncResult:
     history_root = output_repo_path / history_subpath
     index_path = output_repo_path / ".convx" / "index.json"
@@ -110,7 +124,11 @@ def sync_sessions(
     result = SyncResult(dry_run=dry_run)
     for source_path in adapter.discover_files(input_path, repo_filter_path=repo_filter_path):
         result.discovered += 1
-        peek = adapter.peek_session(source_path, source_system)
+        try:
+            peek = adapter.peek_session(source_path, source_system)
+        except (ValueError, OSError):
+            result.filtered += 1
+            continue
         fingerprint = peek.get("fingerprint") or sha256_file(source_path)
         session_key = peek["session_key"]
         cwd = str(peek.get("cwd", ""))
@@ -129,66 +147,81 @@ def sync_sessions(
                     result.skipped += 1
                     continue
 
-        session = adapter.parse_session(source_path, source_system, user, system_name)
+        try:
+            session = adapter.parse_session(source_path, source_system, user, system_name)
+        except (ValueError, OSError, KeyError, json.JSONDecodeError):
+            result.filtered += 1
+            continue
         if repo_filter_path and not _is_under_repo(session.cwd, repo_filter_path):
             result.filtered += 1
             continue
-        out_dir = _build_output_dir(history_root, session, flat=flat_output)
-        basename = _session_basename(session, prior.get("basename"))
+        if _session_contains(session, skip_if_contains):
+            result.filtered += 1
+            continue
+        try:
+            out_dir = _build_output_dir(history_root, session, flat=flat_output)
+            basename = _session_basename(session, prior.get("basename"))
 
-        if session.child_sessions is not None:
-            session_dir = out_dir / basename
-            markdown_path = session_dir / "index.md"
-            json_path = session_dir / ".index.json"
-            if not dry_run:
-                atomic_write_text(
-                    markdown_path,
-                    redact_secrets(
-                        render_markdown(session, with_context=with_context, with_thinking=with_thinking),
-                        redact=redact,
-                    ),
-                )
-                atomic_write_text(json_path, redact_secrets(render_json(session), redact=redact))
-                for child in session.child_sessions:
+            if session.child_sessions is not None:
+                session_dir = out_dir / basename
+                markdown_path = session_dir / "index.md"
+                json_path = session_dir / ".index.json"
+                if not dry_run:
                     atomic_write_text(
-                        session_dir / f"agent-{child.session_id}.md",
+                        markdown_path,
                         redact_secrets(
-                            render_markdown(child, with_context=with_context, with_thinking=with_thinking),
+                            render_markdown(session, with_context=with_context, with_thinking=with_thinking),
                             redact=redact,
                         ),
                     )
-        else:
-            markdown_path = out_dir / f"{basename}.md"
-            json_path = out_dir / f".{basename}.json"
-            if not dry_run:
-                atomic_write_text(
-                    markdown_path,
-                    redact_secrets(
-                        render_markdown(session, with_context=with_context, with_thinking=with_thinking),
-                        redact=redact,
-                    ),
-                )
-                atomic_write_text(json_path, redact_secrets(render_json(session), redact=redact))
+                    atomic_write_text(json_path, redact_secrets(render_json(session), redact=redact))
+                    for child in session.child_sessions:
+                        atomic_write_text(
+                            session_dir / f"agent-{child.session_id}.md",
+                            redact_secrets(
+                                render_markdown(child, with_context=with_context, with_thinking=with_thinking),
+                                redact=redact,
+                            ),
+                        )
+            else:
+                markdown_path = out_dir / f"{basename}.md"
+                json_path = out_dir / f".{basename}.json"
+                if not dry_run:
+                    atomic_write_text(
+                        markdown_path,
+                        redact_secrets(
+                            render_markdown(session, with_context=with_context, with_thinking=with_thinking),
+                            redact=redact,
+                        ),
+                    )
+                    atomic_write_text(json_path, redact_secrets(render_json(session), redact=redact))
 
-        now = now_iso()
-        records[session_key] = {
-            "session_key": session_key,
-            "fingerprint": fingerprint,
-            "source_system": source_system,
-            "source_path": str(source_path),
-            "markdown_path": str(markdown_path.relative_to(output_repo_path)),
-            "json_path": str(json_path.relative_to(output_repo_path)),
-            "basename": basename,
-            "updated_at": now,
-        }
-        if prior:
-            result.updated += 1
-        else:
-            result.exported += 1
+            now = now_iso()
+            records[session_key] = {
+                "session_key": session_key,
+                "fingerprint": fingerprint,
+                "source_system": source_system,
+                "source_path": str(source_path),
+                "markdown_path": str(markdown_path.relative_to(output_repo_path)),
+                "json_path": str(json_path.relative_to(output_repo_path)),
+                "basename": basename,
+                "updated_at": now,
+                "started_at": session.started_at,
+            }
+            if prior:
+                result.updated += 1
+            else:
+                result.exported += 1
+        except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError):
+            result.filtered += 1
+            continue
 
     if not dry_run:
-        _ensure_convx_gitignore(output_repo_path)
-        atomic_write_json(index_path, index)
+        try:
+            _ensure_convx_gitignore(output_repo_path)
+            atomic_write_json(index_path, index)
+        except OSError:
+            pass
     return result
 
 
