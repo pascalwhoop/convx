@@ -162,12 +162,14 @@ class ClaudeAdapter:
                     data = json.loads(index_path.read_text(encoding="utf-8"))
                 except json.JSONDecodeError:
                     data = {}
+                indexed_sids: set[str] = set()
                 for entry in data.get("entries", []):
                     if entry.get("isSidechain"):
                         continue
                     sid = entry.get("sessionId")
                     if not sid:
                         continue
+                    indexed_sids.add(sid)
                     full_path = entry.get("fullPath")
                     p = Path(full_path) if full_path else None
                     if p and p.exists():
@@ -176,6 +178,10 @@ class ClaudeAdapter:
                         p = project_dir / f"{sid}.jsonl"
                         if p.exists():
                             paths.append(p)
+                # Also pick up any .jsonl files on disk not yet in the index
+                for p in sorted(project_dir.glob("*.jsonl")):
+                    if p.is_file() and p.stem not in indexed_sids:
+                        paths.append(p)
             else:
                 for p in sorted(project_dir.glob("*.jsonl")):
                     if p.is_file():

@@ -17,6 +17,14 @@ Export AI conversation sessions into a Git repository using a readable, time-bas
 - Runs idempotently (only reprocesses changed or new sessions).
 - Cursor: supports both single-folder and multi-root (`.code-workspace`) windows — sessions are attributed to the matching repo folder.
 
+## TL;DR
+
+No install needed — just run from any project folder:
+
+```bash
+uvx --from convx-ai convx sync
+```
+
 ## Install and run
 
 ```bash
