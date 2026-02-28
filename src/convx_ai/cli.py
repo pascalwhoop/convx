@@ -351,7 +351,7 @@ def hooks_install(
     hooks_dir = repo / ".git" / "hooks"
     hook_path = hooks_dir / "pre-commit"
     script = f"""#!/usr/bin/env sh
-convx sync --history-subpath {shlex.quote(history_subpath)}
+uv run convx sync --history-subpath {shlex.quote(history_subpath)}
 """
     if hook_path.exists():
         content = hook_path.read_text()

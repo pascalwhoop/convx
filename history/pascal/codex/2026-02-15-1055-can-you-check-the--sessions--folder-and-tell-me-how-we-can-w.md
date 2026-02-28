@@ -99,7 +99,7 @@ Perfect — yes, that’s the right evolution.
   - `YYYY-MM-DD-HHMM-<slug>.md`
   - `.YYYY-MM-DD-HHMM-<slug>.json`
 - Example:
-  - `history/pascal/codex/macbook-pro/Code/everycure/prototypes/matrix-heatmap-test/2026-02-05-1608-heatmap-filtering.md`
+  - [SANITIZED]
 
 **Multi-System Design**
 - Add a normalized session model (`NormalizedSession`) with fields like:

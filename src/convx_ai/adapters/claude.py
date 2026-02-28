@@ -14,7 +14,14 @@ def _encode_path(path: Path | str) -> str:
 
 def _project_dir_matches_repo(project_dir_name: str, repo_path: Path) -> bool:
     encoded = _encode_path(repo_path.resolve())
-    return project_dir_name == encoded or project_dir_name.startswith(f"{encoded}-")
+    # Claude also replaces dots with hyphens in project dir names (e.g. reconnct.us → reconnct-us)
+    encoded_nodots = encoded.replace(".", "-")
+    return (
+        project_dir_name == encoded
+        or project_dir_name.startswith(f"{encoded}-")
+        or project_dir_name == encoded_nodots
+        or project_dir_name.startswith(f"{encoded_nodots}-")
+    )
 
 
 def _extract_text_from_content(content) -> tuple[str, str]:

@@ -211,3 +211,33 @@ def test_claude_sync_always_uses_folder_structure(tmp_path: Path) -> None:
     md_files = list(history_root.rglob("*.md"))
     assert all(f.name in ("index.md", "agent-abc1234.md") for f in md_files)
     assert not any(f.suffix == ".md" and f.name != "index.md" and not f.name.startswith("agent-") for f in history_root.rglob("*"))
+
+
+def test_claude_sync_dotted_repo_name(tmp_path: Path) -> None:
+    """Claude replaces dots with hyphens in project dir names (e.g. reconnct.us → reconnct-us).
+    convx must still discover and export those sessions."""
+    # Repo path has a dot in the directory name
+    project_repo = tmp_path / "Users" / "alice" / "Code" / "reconnct.us"
+    _init_git_repo(project_repo)
+
+    projects_dir = tmp_path / "claude_projects"
+    projects_dir.mkdir(parents=True, exist_ok=True)
+
+    # Claude encodes the path by replacing both / and . with hyphens
+    dot_encoded = _encode_path(project_repo).replace(".", "-")
+    proj = projects_dir / dot_encoded
+    proj.mkdir(parents=True, exist_ok=True)
+    (proj / "eeeeeeee-1111-2222-3333-444444440005.jsonl").write_text(
+        '{"type":"user","cwd":"' + str(project_repo) + '","sessionId":"eeeeeeee-1111-2222-3333-444444440005","message":{"role":"user","content":"Fix the login flow"},"timestamp":"2026-01-20T09:00:00.000Z"}\n'
+        '{"type":"assistant","cwd":"' + str(project_repo) + '","sessionId":"eeeeeeee-1111-2222-3333-444444440005","message":{"role":"assistant","content":[{"type":"text","text":"Done."}]},"timestamp":"2026-01-20T09:00:10.000Z"}\n'
+    )
+
+    run = _run_cli([
+        "sync",
+        "--source-system", "claude",
+        "--input-path", str(projects_dir),
+        "--user", "alice",
+        "--history-subpath", "history",
+    ], cwd=project_repo)
+    assert run.returncode == 0, run.stderr
+    assert "exported=1" in run.stdout, run.stdout

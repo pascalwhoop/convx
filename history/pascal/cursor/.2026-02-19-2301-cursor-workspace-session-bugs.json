@@ -173,7 +173,7 @@
     {
       "kind": "assistant",
       "role": "assistant",
-      "text": "Summary of what changed:\n\n**Fish-style folder compaction** (`_compact_folder` in `tui.py`):\n- **Intermediate segments** → first 3 characters (e.g. `Code` → `Cod`, `everycure` → `eve`, `experiments` → `exp`).\n- **Last segment** → kept in full (so the project name like `product-template` or `convx` is always shown).\n- **Max width** → 36 characters for the folder. If the compacted path is longer, it’s truncated on the left with `...` so the end (and thus the last folder) stays visible.\n\nExample:\n- `Pascals-MBP.local/Code/everycure/experiments/product-template`  \n  → `Pas/Cod/eve/exp/product-template`  \n- If that still exceeded 36 chars you’d get something like:  \n  `.../eve/exp/product-template`\n\nSo the folder column stays bounded while the last (most important) folder remains visible.",
+      "text": "Summary of what changed:\n\n**Fish-style folder compaction** (`_compact_folder` in `tui.py`):\n- **Intermediate segments** → first 3 characters (e.g. [SANITIZED]).\n- **Last segment** → kept in full (so the project name like `product-template` or `convx` is always shown).\n- **Max width** → 36 characters for the folder. If the compacted path is longer, it’s truncated on the left with `...` so the end (and thus the last folder) stays visible.\n\nExample:\n- `[SANITIZED]`  \n  → `Pas/Cod/eve/exp/product-template`  \n- If that still exceeded 36 chars you’d get something like:  \n  `.../eve/exp/product-template`\n\nSo the folder column stays bounded while the last (most important) folder remains visible.",
       "timestamp": null
     },
     {

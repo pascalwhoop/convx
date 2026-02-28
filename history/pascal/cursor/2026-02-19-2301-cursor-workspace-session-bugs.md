@@ -177,12 +177,12 @@ Adding fish-style path compaction: abbreviate intermediate segments to 3 charact
 Summary of what changed:
 
 **Fish-style folder compaction** (`_compact_folder` in `tui.py`):
-- **Intermediate segments** → first 3 characters (e.g. `Code` → `Cod`, `everycure` → `eve`, `experiments` → `exp`).
+- [SANITIZED]
 - **Last segment** → kept in full (so the project name like `product-template` or `convx` is always shown).
 - **Max width** → 36 characters for the folder. If the compacted path is longer, it’s truncated on the left with `...` so the end (and thus the last folder) stays visible.
 
 Example:
-- `Pascals-MBP.local/Code/everycure/experiments/product-template`  
+- [SANITIZED]
   → `Pas/Cod/eve/exp/product-template`  
 - If that still exceeded 36 chars you’d get something like:  
   `.../eve/exp/product-template`

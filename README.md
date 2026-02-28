@@ -101,7 +101,7 @@ history/
     codex/
       macbook-pro/
         Code/
-          everycure/
+          my-project/
             prototypes/
               matrix-heatmap-test/
                 2026-02-15-1155-conversation-backup-plan.md

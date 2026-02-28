@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "WebFetch(domain:registry.npmjs.org)"
+      "WebFetch(domain:registry.npmjs.org)",
+      "Bash(uv run:*)"
     ]
   }
 }

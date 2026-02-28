@@ -16,20 +16,20 @@ def test_no_keywords_returns_unchanged():
 
 
 def test_matching_line_replaced():
-    text = "hello world\ncontact everycure team\ngoodbye"
-    result = sanitize_lines(text, ["everycure"])
+    text = "hello world\ncontact acme corp team\ngoodbye"
+    result = sanitize_lines(text, ["acme corp"])
     assert result == f"hello world\n{SANITIZED}\ngoodbye"
 
 
 def test_case_insensitive():
-    text = "Meeting with Every Cure today"
-    result = sanitize_lines(text, ["every cure"])
+    text = "Meeting with Acme Corp today"
+    result = sanitize_lines(text, ["acme corp"])
     assert result == SANITIZED
 
 
 def test_keyword_with_mixed_case_in_line():
-    text = "EVERYCURE is mentioned here"
-    result = sanitize_lines(text, ["everycure"])
+    text = "ACME CORP is mentioned here"
+    result = sanitize_lines(text, ["acme corp"])
     assert result == SANITIZED
 
 
@@ -40,13 +40,13 @@ def test_multiple_keywords_any_match():
 
 
 def test_multiple_matching_lines():
-    text = "line one\nEveryCure ref here\nline three\neverycure again"
-    result = sanitize_lines(text, ["everycure"])
+    text = "line one\nAcme Corp ref here\nline three\nacme corp again"
+    result = sanitize_lines(text, ["acme corp"])
     assert result == f"line one\n{SANITIZED}\nline three\n{SANITIZED}"
 
 
 def test_empty_text():
-    assert sanitize_lines("", ["everycure"]) == ""
+    assert sanitize_lines("", ["acme corp"]) == ""
 
 
 def test_empty_lines_preserved():
@@ -66,10 +66,10 @@ def test_loads_keywords_from_toml(tmp_path: Path):
     convx_dir = tmp_path / ".convx"
     convx_dir.mkdir()
     (convx_dir / "sanitize.toml").write_text(
-        'keywords = ["everycure", "Every Cure"]\n', encoding="utf-8"
+        'keywords = ["acme corp", "secret project"]\n', encoding="utf-8"
     )
     keywords = load_sanitize_keywords(tmp_path)
-    assert keywords == ["everycure", "Every Cure"]
+    assert keywords == ["acme corp", "secret project"]
 
 
 def test_empty_keywords_list(tmp_path: Path):
