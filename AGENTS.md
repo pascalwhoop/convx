@@ -20,7 +20,7 @@ uv run pytest tests/test_integration_sync.py::test_name  # run a single test
 2. **Engine** (`engine.py`) — `sync_sessions()` orchestrates idempotency: loads `.convx/index.json`, fingerprints source files (SHA-256), skips unchanged sessions, calls the adapter to parse changed ones, then writes artifacts and updates the index.
 3. **Render** (`render.py`) — converts `NormalizedSession` to Markdown transcript or JSON string.
 4. **CLI** (`cli.py`) — two main commands built with Typer:
-   - `sync`: runs inside a project repo, filters sessions by `cwd`, writes flat under `history/<user>/<source>/`
+   - `sync`: runs inside a project repo, filters sessions by `cwd`, writes flat under `.ai/history/<user>/<source>/` by default
    - `backup`: writes to a dedicated repo with full path nesting `history/<user>/<source>/<system>/<relative-cwd>/`
 
 **Idempotency index:** `.convx/index.json` in the output repo. Keyed by `session_key` (`<source_system>:<session_id>`). A session is re-exported only when the source SHA-256 changes or output files are missing.

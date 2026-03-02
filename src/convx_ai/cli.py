@@ -4,6 +4,7 @@ import getpass
 import json
 import platform
 import shlex
+import subprocess
 from pathlib import Path
 
 import typer
@@ -12,7 +13,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from convx_ai.adapters import default_input_path, get_adapter
-from convx_ai.config import ConvxConfig
+from convx_ai.config import ConvxConfig, create_config_if_missing
 from convx_ai.engine import SyncResult, sync_sessions
 from convx_ai.utils import sanitize_segment
 
@@ -28,6 +29,27 @@ def _require_git_repo(path: Path) -> Path:
     return resolved
 
 
+def _require_git_root(path: Path) -> Path:
+    resolved = path.expanduser().resolve()
+    if not resolved.exists():
+        raise typer.BadParameter(f"Path does not exist: {resolved}")
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(resolved), "rev-parse", "--show-toplevel"],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+    except OSError as exc:
+        raise typer.BadParameter(f"Failed to run git: {exc}") from exc
+    if result.returncode != 0:
+        raise typer.BadParameter(f"Not inside a git repository: {resolved}")
+    root = Path(result.stdout.strip()).resolve()
+    if not root.exists():
+        raise typer.BadParameter(f"Resolved git root does not exist: {root}")
+    return root
+
+
 def _resolve_output_path(path: Path) -> Path:
     resolved = path.expanduser().resolve()
     resolved.mkdir(parents=True, exist_ok=True)
@@ -38,6 +60,10 @@ def _resolve_input(source_system: str, input_path: Path | None) -> Path:
     if input_path is not None:
         return input_path.expanduser().resolve()
     return default_input_path(source_system).resolve()
+
+
+def _resolve_bool(value: bool | None, default: bool) -> bool:
+    return default if value is None else value
 
 
 def _print_sync_summary(
@@ -85,50 +111,65 @@ def _source_systems(value: str) -> list[str]:
 
 @app.command("sync")
 def sync_command(
-    source_system: str = typer.Option(
-        "all",
+    source_system: str | None = typer.Option(
+        None,
         "--source-system",
         help="Source system(s): codex, claude, cursor, or all (default).",
     ),
     input_path: Path | None = typer.Option(
         None, "--input-path", help="Source sessions path override (per source)."
     ),
-    user: str = typer.Option(
-        getpass.getuser(), "--user", help="User namespace in output history path."
+    user: str | None = typer.Option(
+        None, "--user", help="User namespace in output history path."
     ),
-    system_name: str = typer.Option(
-        platform.node() or "unknown-system",
+    system_name: str | None = typer.Option(
+        None,
         "--system-name",
         help="System namespace in output history path.",
     ),
-    history_subpath: str = typer.Option(
-        "history",
+    history_subpath: str | None = typer.Option(
+        None,
         "--history-subpath",
         help="Subpath inside repo where history is written.",
     ),
-    dry_run: bool = typer.Option(
-        False, "--dry-run", help="Plan export without writing files."
+    dry_run: bool | None = typer.Option(
+        None, "--dry-run/--no-dry-run", help="Plan export without writing files."
     ),
-    no_redact: bool = typer.Option(
-        False, "--no-redact", help="Do not redact API keys, tokens, or passwords in output."
+    redact: bool | None = typer.Option(
+        None, "--redact/--no-redact", help="Redact API keys, tokens, or passwords in output."
     ),
-    with_context: bool = typer.Option(
-        False, "--with-context", help="Include tool calls and injected context as HTML comments."
+    with_context: bool | None = typer.Option(
+        None, "--with-context/--no-with-context", help="Include tool calls and injected context as HTML comments."
     ),
-    with_thinking: bool = typer.Option(
-        False, "--with-thinking", help="Include AI reasoning/thinking blocks as HTML comments."
+    with_thinking: bool | None = typer.Option(
+        None, "--with-thinking/--no-with-thinking", help="Include AI reasoning/thinking blocks as HTML comments."
     ),
-    skip_if_contains: str = typer.Option(
-        "CONVX_NO_SYNC",
+    skip_if_contains: str | None = typer.Option(
+        None,
         "--skip-if-contains",
         help="Do not sync conversations that contain this string (pass empty to disable).",
     ),
-    overwrite: bool = typer.Option(
-        False, "--overwrite", help="Re-export all sessions, ignoring cached fingerprints."
+    overwrite: bool | None = typer.Option(
+        None, "--overwrite/--no-overwrite", help="Re-export all sessions, ignoring cached fingerprints."
     ),
 ) -> None:
     """Sync conversations for the current Git repo into it."""
-    project_repo = _require_git_repo(Path.cwd())
+    project_repo = _require_git_root(Path.cwd())
+    create_config_if_missing(project_repo)
+    config = ConvxConfig.for_repo(project_repo)
+    sync_defaults = config.sync
+    source_system = source_system or sync_defaults.source_system
+    input_path = input_path or (Path(sync_defaults.input_path) if sync_defaults.input_path else None)
+    user = user or sync_defaults.user or getpass.getuser()
+    system_name = system_name or sync_defaults.system_name or platform.node() or "unknown-system"
+    history_subpath = history_subpath or sync_defaults.history_subpath
+    dry_run = _resolve_bool(dry_run, sync_defaults.dry_run)
+    redact = _resolve_bool(redact, sync_defaults.redact)
+    with_context = _resolve_bool(with_context, sync_defaults.with_context)
+    with_thinking = _resolve_bool(with_thinking, sync_defaults.with_thinking)
+    skip_if_contains = sync_defaults.skip_if_contains if skip_if_contains is None else skip_if_contains
+    overwrite = _resolve_bool(overwrite, sync_defaults.overwrite)
+
     sources = _source_systems(source_system)
     total = SyncResult()
     console = Console()
@@ -148,7 +189,7 @@ def sync_command(
                 dry_run=dry_run,
                 repo_filter_path=project_repo,
                 flat_output=True,
-                redact=not no_redact,
+                redact=redact,
                 with_context=with_context,
                 with_thinking=with_thinking,
                 skip_if_contains=skip_if_contains,
@@ -183,48 +224,62 @@ def backup_command(
     output_path: Path = typer.Option(
         ..., "--output-path", help="Directory to export conversations to (created if missing)."
     ),
-    source_system: str = typer.Option(
-        "all", "--source-system", help="Source system(s): codex, claude, cursor, or all (default)."
+    source_system: str | None = typer.Option(
+        None, "--source-system", help="Source system(s): codex, claude, cursor, or all (default)."
     ),
     input_path: Path | None = typer.Option(
         None, "--input-path", help="Source sessions path override (per source)."
     ),
-    user: str = typer.Option(
-        getpass.getuser(), "--user", help="User namespace in output history path."
+    user: str | None = typer.Option(
+        None, "--user", help="User namespace in output history path."
     ),
-    system_name: str = typer.Option(
-        platform.node() or "unknown-system",
+    system_name: str | None = typer.Option(
+        None,
         "--system-name",
         help="System namespace in output history path.",
     ),
-    history_subpath: str = typer.Option(
-        "history",
+    history_subpath: str | None = typer.Option(
+        None,
         "--history-subpath",
         help="Subpath inside output repo where history is written.",
     ),
-    dry_run: bool = typer.Option(
-        False, "--dry-run", help="Plan export without writing files."
+    dry_run: bool | None = typer.Option(
+        None, "--dry-run/--no-dry-run", help="Plan export without writing files."
     ),
-    no_redact: bool = typer.Option(
-        False, "--no-redact", help="Do not redact API keys, tokens, or passwords in output."
+    redact: bool | None = typer.Option(
+        None, "--redact/--no-redact", help="Redact API keys, tokens, or passwords in output."
     ),
-    with_context: bool = typer.Option(
-        False, "--with-context", help="Include tool calls and injected context as HTML comments."
+    with_context: bool | None = typer.Option(
+        None, "--with-context/--no-with-context", help="Include tool calls and injected context as HTML comments."
     ),
-    with_thinking: bool = typer.Option(
-        False, "--with-thinking", help="Include AI reasoning/thinking blocks as HTML comments."
+    with_thinking: bool | None = typer.Option(
+        None, "--with-thinking/--no-with-thinking", help="Include AI reasoning/thinking blocks as HTML comments."
     ),
-    skip_if_contains: str = typer.Option(
-        "CONVX_NO_SYNC",
+    skip_if_contains: str | None = typer.Option(
+        None,
         "--skip-if-contains",
         help="Do not sync conversations that contain this string (pass empty to disable).",
     ),
-    overwrite: bool = typer.Option(
-        False, "--overwrite", help="Re-export all sessions, ignoring cached fingerprints."
+    overwrite: bool | None = typer.Option(
+        None, "--overwrite/--no-overwrite", help="Re-export all sessions, ignoring cached fingerprints."
     ),
 ) -> None:
     """Full backup of all conversations into a directory (created if missing)."""
     output_repo = _resolve_output_path(output_path)
+    config = ConvxConfig.for_repo(output_repo)
+    backup_defaults = config.backup
+    source_system = source_system or backup_defaults.source_system
+    input_path = input_path or (Path(backup_defaults.input_path) if backup_defaults.input_path else None)
+    user = user or backup_defaults.user or getpass.getuser()
+    system_name = system_name or backup_defaults.system_name or platform.node() or "unknown-system"
+    history_subpath = history_subpath or backup_defaults.history_subpath
+    dry_run = _resolve_bool(dry_run, backup_defaults.dry_run)
+    redact = _resolve_bool(redact, backup_defaults.redact)
+    with_context = _resolve_bool(with_context, backup_defaults.with_context)
+    with_thinking = _resolve_bool(with_thinking, backup_defaults.with_thinking)
+    skip_if_contains = backup_defaults.skip_if_contains if skip_if_contains is None else skip_if_contains
+    overwrite = _resolve_bool(overwrite, backup_defaults.overwrite)
+
     sources = _source_systems(source_system)
     total = SyncResult()
     console = Console()
@@ -242,7 +297,7 @@ def backup_command(
                 user=sanitize_segment(user),
                 system_name=sanitize_segment(system_name),
                 dry_run=dry_run,
-                redact=not no_redact,
+                redact=redact,
                 with_context=with_context,
                 with_thinking=with_thinking,
                 skip_if_contains=skip_if_contains,
@@ -341,14 +396,16 @@ hooks_app = typer.Typer(help="Install or remove pre-commit hook that runs sync b
 
 @hooks_app.command("install")
 def hooks_install(
-    history_subpath: str = typer.Option(
-        "history",
+    history_subpath: str | None = typer.Option(
+        None,
         "--history-subpath",
         help="Subpath inside repo where history is written (must match sync).",
     ),
 ) -> None:
     """Install pre-commit hook that runs convx sync before each commit."""
     repo = _require_git_repo(Path.cwd())
+    config = ConvxConfig.for_repo(repo)
+    history_subpath = history_subpath or config.hooks.history_subpath
     hooks_dir = repo / ".git" / "hooks"
     hook_path = hooks_dir / "pre-commit"
     script = f"""#!/usr/bin/env sh
@@ -411,14 +468,16 @@ def word_stats_command(
     output_path: Path = typer.Option(
         Path.cwd(), "--output-path", help="Directory containing exported conversations."
     ),
-    history_subpath: str = typer.Option(
-        "history", "--history-subpath", help="Subpath where history is written (must match sync/backup)."
+    history_subpath: str | None = typer.Option(
+        None, "--history-subpath", help="Subpath where history is written (must match sync/backup)."
     ),
 ) -> None:
     """Show word count statistics per day per project."""
     from convx_ai.stats import compute_word_series
 
     repo = output_path.expanduser().resolve()
+    config = ConvxConfig.for_repo(repo)
+    history_subpath = history_subpath or config.word_stats.history_subpath
     history_path = repo / history_subpath
 
     if not history_path.exists():

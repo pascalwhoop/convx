@@ -10,6 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = ROOT / "tests" / "fixtures" / "codex_sessions"
 FIXTURES_REDACT = ROOT / "tests" / "fixtures" / "codex_sessions_redact"
+CONFIG_REF = "https://github.com/pascalwhoop/convx/blob/main/src/convx_ai/config.py"
 
 
 def _run_cli(args: list[str], cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
@@ -93,6 +94,29 @@ def test_sync_filters_to_current_git_repository(tmp_path: Path) -> None:
     assert len(markdown_files) == 1
 
 
+def test_sync_from_subdirectory_writes_to_git_root(tmp_path: Path) -> None:
+    project_repo = tmp_path / "backend"
+    _init_git_repo(project_repo)
+    nested = project_repo / "api" / "handlers"
+    nested.mkdir(parents=True, exist_ok=True)
+
+    run = _run_cli([
+        "sync",
+        "--source-system", "codex",
+        "--input-path", str(FIXTURES),
+        "--user", "alice",
+        "--system-name", "macbook-pro",
+        "--history-subpath", ".ai/history",
+    ], cwd=nested)
+    assert run.returncode == 0, run.stderr
+    assert "filtered=1" in run.stdout
+    assert "exported=1" in run.stdout
+
+    history_root = project_repo / ".ai" / "history" / "alice" / "codex"
+    markdown_files = sorted(history_root.rglob("*.md"))
+    assert len(markdown_files) == 1
+
+
 def test_sync_skips_conversations_containing_marker(tmp_path: Path) -> None:
     project_repo = tmp_path / "backend"
     _init_git_repo(project_repo)
@@ -109,8 +133,51 @@ def test_sync_skips_conversations_containing_marker(tmp_path: Path) -> None:
     assert "filtered=2" in run.stdout
     assert "exported=0" in run.stdout
 
-    history_root = project_repo / "history" / "alice" / "codex"
+    history_root = project_repo / ".ai" / "history" / "alice" / "codex"
     assert not history_root.exists() or len(list(history_root.rglob("*.md"))) == 0
+
+
+def test_sync_uses_history_subpath_from_config(tmp_path: Path) -> None:
+    project_repo = tmp_path / "backend"
+    _init_git_repo(project_repo)
+    (project_repo / ".convx").mkdir(parents=True, exist_ok=True)
+    (project_repo / ".convx" / "config.toml").write_text(
+        "[sync]\nhistory_subpath = \".ai/history\"\n",
+        encoding="utf-8",
+    )
+
+    run = _run_cli([
+        "sync",
+        "--source-system", "codex",
+        "--input-path", str(FIXTURES),
+        "--user", "alice",
+        "--system-name", "macbook-pro",
+    ], cwd=project_repo)
+    assert run.returncode == 0, run.stderr
+    assert "exported=1" in run.stdout
+
+    history_root = project_repo / ".ai" / "history" / "alice" / "codex"
+    markdown_files = sorted(history_root.rglob("*.md"))
+    assert len(markdown_files) == 1
+
+
+def test_sync_creates_config_file_if_missing(tmp_path: Path) -> None:
+    project_repo = tmp_path / "backend"
+    _init_git_repo(project_repo)
+    config_path = project_repo / ".convx" / "config.toml"
+    assert not config_path.exists()
+
+    run = _run_cli([
+        "sync",
+        "--source-system", "codex",
+        "--input-path", str(FIXTURES),
+        "--user", "alice",
+        "--system-name", "macbook-pro",
+    ], cwd=project_repo)
+    assert run.returncode == 0, run.stderr
+    assert config_path.exists()
+    content = config_path.read_text(encoding="utf-8")
+    assert CONFIG_REF in content
 
 
 def test_secrets_redacted_in_output(tmp_path: Path) -> None:

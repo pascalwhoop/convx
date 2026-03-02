@@ -12,7 +12,7 @@ Export AI conversation sessions into a Git repository using a readable, time-bas
     - readable Markdown transcript: `YYYY-MM-DD-HHMM-slug.md`
     - hidden normalized JSON: `.YYYY-MM-DD-HHMM-slug.json`
 - Organizes history by user and source system:
-    - `sync`: `history/<user>/<source-system>/` (flat — sessions directly inside)
+    - `sync`: `.ai/history/<user>/<source-system>/` (flat — sessions directly inside)
     - `backup`: `history/<user>/<source-system>/<system-name>/<path-relative-to-home>/...`
 - Runs idempotently (only reprocesses changed or new sessions).
 - Cursor: supports both single-folder and multi-root (`.code-workspace`) windows — sessions are attributed to the matching repo folder.
@@ -50,7 +50,7 @@ cd /path/to/your/project
 uv run convx sync
 ```
 
-By default syncs Codex, Claude, and Cursor. Use `--source-system codex`, `--source-system claude`, or `--source-system cursor` to sync a single source. No `--output-path` needed — the current directory is used as both the filter and the destination. Sessions are written flat under `history/<user>/<source-system>/` with no machine name or path nesting.
+By default syncs Codex, Claude, and Cursor. Use `--source-system codex`, `--source-system claude`, or `--source-system cursor` to sync a single source. No `--output-path` needed — the current directory is used as both the filter and the destination. Sessions are written flat under `.ai/history/<user>/<source-system>/` with no machine name or path nesting.
 
 ## backup — full backup command
 
@@ -73,7 +73,7 @@ uv run convx backup \
 - `--user`: user namespace for history path (default: current OS user).
 - `--system-name`: system namespace for history path (default: hostname).
 - `--dry-run`: discover and plan without writing files.
-- `--history-subpath`: folder inside output repo where history is stored (default `history`).
+- `--history-subpath`: folder inside output repo where history is stored (default: `sync` = `.ai/history`, `backup` = `history`).
 - `--output-path` (backup only): target Git repository (must already contain `.git`).
 
 ## Configuration defaults

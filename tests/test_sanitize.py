@@ -65,8 +65,8 @@ def test_no_config_file_returns_empty(tmp_path: Path):
 def test_loads_keywords_from_toml(tmp_path: Path):
     convx_dir = tmp_path / ".convx"
     convx_dir.mkdir()
-    (convx_dir / "sanitize.toml").write_text(
-        'keywords = ["acme corp", "secret project"]\n', encoding="utf-8"
+    (convx_dir / "config.toml").write_text(
+        '[sanitize]\nkeywords = ["acme corp", "secret project"]\n', encoding="utf-8"
     )
     keywords = load_sanitize_keywords(tmp_path)
     assert keywords == ["acme corp", "secret project"]
@@ -75,19 +75,19 @@ def test_loads_keywords_from_toml(tmp_path: Path):
 def test_empty_keywords_list(tmp_path: Path):
     convx_dir = tmp_path / ".convx"
     convx_dir.mkdir()
-    (convx_dir / "sanitize.toml").write_text("keywords = []\n", encoding="utf-8")
+    (convx_dir / "config.toml").write_text("[sanitize]\nkeywords = []\n", encoding="utf-8")
     assert load_sanitize_keywords(tmp_path) == []
 
 
 def test_missing_keywords_key(tmp_path: Path):
     convx_dir = tmp_path / ".convx"
     convx_dir.mkdir()
-    (convx_dir / "sanitize.toml").write_text("[other]\nfoo = 1\n", encoding="utf-8")
+    (convx_dir / "config.toml").write_text("[other]\nfoo = 1\n", encoding="utf-8")
     assert load_sanitize_keywords(tmp_path) == []
 
 
 def test_invalid_toml_returns_empty(tmp_path: Path):
     convx_dir = tmp_path / ".convx"
     convx_dir.mkdir()
-    (convx_dir / "sanitize.toml").write_text("not valid toml ][[\n", encoding="utf-8")
+    (convx_dir / "config.toml").write_text("not valid toml ][[\n", encoding="utf-8")
     assert load_sanitize_keywords(tmp_path) == []

@@ -1,28 +1,18 @@
 from __future__ import annotations
 
-import tomllib
 from pathlib import Path
+
+from convx_ai.config import ConvxConfig
 
 SANITIZED = "[SANITIZED]"
 
 
 def load_sanitize_keywords(repo_path: Path) -> list[str]:
-    """Load keyword list from .convx/sanitize.toml in the output repo.
+    """Load keyword list from .convx/config.toml in the output repo.
 
     Returns an empty list if the file does not exist or contains no keywords.
     """
-    config_path = repo_path / ".convx" / "sanitize.toml"
-    if not config_path.exists():
-        return []
-    try:
-        with config_path.open("rb") as f:
-            data = tomllib.load(f)
-        keywords = data.get("keywords", [])
-        if isinstance(keywords, list):
-            return [str(k) for k in keywords if k]
-        return []
-    except (tomllib.TOMLDecodeError, OSError):
-        return []
+    return [k for k in ConvxConfig.for_repo(repo_path).sanitize.keywords if k]
 
 
 def sanitize_lines(text: str, keywords: list[str]) -> str:
