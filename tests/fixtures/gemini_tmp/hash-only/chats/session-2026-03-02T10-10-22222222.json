@@ -1,0 +1,23 @@
+{
+  "sessionId": "22222222-2222-2222-2222-222222222222",
+  "projectHash": "0a7c3cd19ce51969a953df6845f57d259a3ba8da52713ebc963db2fea0cafb00",
+  "startTime": "2026-03-02T10:10:00.000Z",
+  "lastUpdated": "2026-03-02T10:11:00.000Z",
+  "messages": [
+    {
+      "id": "m1",
+      "timestamp": "2026-03-02T10:10:00.000Z",
+      "type": "user",
+      "content": [
+        {"text": "Refactor API routes into smaller modules."}
+      ]
+    },
+    {
+      "id": "m2",
+      "timestamp": "2026-03-02T10:10:20.000Z",
+      "type": "gemini",
+      "content": "Split routes by bounded context and add tests."
+    }
+  ],
+  "kind": "main"
+}

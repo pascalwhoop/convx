@@ -105,7 +105,7 @@ def _print_result(result: SyncResult, *, output_repo: Path, history_subpath: str
 
 def _source_systems(value: str) -> list[str]:
     if value.lower() == "all":
-        return ["codex", "claude", "cursor"]
+        return ["codex", "claude", "cursor", "gemini"]
     return [sanitize_segment(s.strip()) for s in value.split(",") if s.strip()]
 
 
@@ -114,7 +114,7 @@ def sync_command(
     source_system: str | None = typer.Option(
         None,
         "--source-system",
-        help="Source system(s): codex, claude, cursor, or all (default).",
+        help="Source system(s): codex, claude, cursor, gemini, or all (default).",
     ),
     input_path: Path | None = typer.Option(
         None, "--input-path", help="Source sessions path override (per source)."
@@ -231,7 +231,7 @@ def backup_command(
         ..., "--output-path", help="Directory to export conversations to (created if missing)."
     ),
     source_system: str | None = typer.Option(
-        None, "--source-system", help="Source system(s): codex, claude, cursor, or all (default)."
+        None, "--source-system", help="Source system(s): codex, claude, cursor, gemini, or all (default)."
     ),
     input_path: Path | None = typer.Option(
         None, "--input-path", help="Source sessions path override (per source)."

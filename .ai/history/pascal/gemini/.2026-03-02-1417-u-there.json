@@ -1,0 +1,26 @@
+{
+  "child_sessions": null,
+  "cwd": "/Users/pascal/Code/business/convx",
+  "messages": [
+    {
+      "kind": "user",
+      "role": "user",
+      "text": "u there?",
+      "timestamp": "2026-03-02T14:17:00.063Z"
+    },
+    {
+      "kind": "assistant",
+      "role": "assistant",
+      "text": "I'm here and ready to help. What's on your mind?",
+      "timestamp": "2026-03-02T14:17:02.258Z"
+    }
+  ],
+  "session_id": "f2f5b5d8-4789-40eb-ba42-7ba0216665ed",
+  "session_key": "gemini:f2f5b5d8-4789-40eb-ba42-7ba0216665ed",
+  "source_path": "/Users/pascal/.gemini/tmp/convx/chats/session-2026-03-02T14-16-f2f5b5d8.json",
+  "source_system": "gemini",
+  "started_at": "2026-03-02T14:17:00.063Z",
+  "summary": null,
+  "system_name": "Pascals-MBP.local",
+  "user": "pascal"
+}

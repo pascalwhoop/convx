@@ -1,0 +1,23 @@
+{
+  "sessionId": "33333333-3333-3333-3333-333333333333",
+  "projectHash": "30e63928cf141c594ae4d1292c32e51f762a243a925caf70c0332b1f7a6e306b",
+  "startTime": "2026-03-02T10:20:00.000Z",
+  "lastUpdated": "2026-03-02T10:20:10.000Z",
+  "messages": [
+    {
+      "id": "m1",
+      "timestamp": "2026-03-02T10:20:00.000Z",
+      "type": "user",
+      "content": [
+        {"text": "This session belongs to a different repository."}
+      ]
+    },
+    {
+      "id": "m2",
+      "timestamp": "2026-03-02T10:20:10.000Z",
+      "type": "gemini",
+      "content": "Acknowledged."
+    }
+  ],
+  "kind": "main"
+}

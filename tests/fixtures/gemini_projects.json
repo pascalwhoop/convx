@@ -1,0 +1,7 @@
+{
+  "projects": {
+    "/Users/alice/Code/backend": "backend",
+    "/Users/alice/Code/backend/api": "backend-api",
+    "/Users/alice/Code/other": "other"
+  }
+}

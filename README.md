@@ -6,7 +6,7 @@ Export AI conversation sessions into a Git repository using a readable, time-bas
 
 ## What it does
 
-- Scans source session files (Codex JSONL, Claude projects, Cursor workspaceStorage).
+- Scans source session files (Codex JSONL, Claude projects, Cursor workspaceStorage, Gemini CLI sessions).
 - Normalizes each session into a common model.
 - Writes two artifacts per session:
     - readable Markdown transcript: `YYYY-MM-DD-HHMM-slug.md`
@@ -50,7 +50,7 @@ cd /path/to/your/project
 uv run convx sync
 ```
 
-By default syncs Codex, Claude, and Cursor. Use `--source-system codex`, `--source-system claude`, or `--source-system cursor` to sync a single source. No `--output-path` needed — the Git root is used as destination and the current working directory is used as scope filter. Recursive folder matching is enabled by default; use `--no-recursive` to restrict to the current folder only. Sessions are written flat under `.ai/history/<user>/<source-system>/` with no machine name or path nesting.
+By default syncs Codex, Claude, Cursor, and Gemini. Use `--source-system codex`, `--source-system claude`, `--source-system cursor`, or `--source-system gemini` to sync a single source. No `--output-path` needed — the Git root is used as destination and the current working directory is used as scope filter. Recursive folder matching is enabled by default; use `--no-recursive` to restrict to the current folder only. Sessions are written flat under `.ai/history/<user>/<source-system>/` with no machine name or path nesting.
 
 ## backup — full backup command
 
@@ -64,12 +64,13 @@ uv run convx backup \
 
 ## Common options
 
-- `--source-system`: source(s) to sync: `all` (default), `codex`, `claude`, `cursor`, or comma-separated.
+- `--source-system`: source(s) to sync: `all` (default), `codex`, `claude`, `cursor`, `gemini`, or comma-separated.
 - `--input-path`: source sessions directory override (per source).
     - default for Codex: `~/.codex/sessions`
     - default for Claude: `~/.claude/projects`
     - default for Cursor: `~/Library/Application Support/Cursor/User/workspaceStorage` (macOS)
       Supports both single-folder and multi-root (`.code-workspace`) Cursor windows.
+    - default for Gemini: `~/.gemini/tmp`
 - `--user`: user namespace for history path (default: current OS user).
 - `--system-name`: system namespace for history path (default: hostname).
 - `--dry-run`: discover and plan without writing files.
